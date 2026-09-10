@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: railopt-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: railopt
+      POSTGRES_USER: railopt
+      POSTGRES_PASSWORD: railopt
+    ports:
+      - "5432:5432"
+    volumes:
+      - railopt-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U railopt -d railopt"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  railopt-postgres-data:

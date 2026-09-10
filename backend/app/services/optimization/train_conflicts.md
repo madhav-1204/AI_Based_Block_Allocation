@@ -1,0 +1,1 @@
+Train conflict detection is a hard constraint. A proposed maintenance block is unsafe when a movement on the same corridor overlaps its protected interval. Intervals that only touch at a boundary do not overlap.

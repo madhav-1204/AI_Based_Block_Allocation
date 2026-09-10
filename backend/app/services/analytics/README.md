@@ -1,0 +1,1 @@
+Analytics are calculated from supplied tasks, block windows, and OptimizedPlan results. Asset availability is explicitly labeled a prototype metric derived from health, overdue ratio, and downtime; it is not an official railway availability formula.

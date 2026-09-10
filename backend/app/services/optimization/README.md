@@ -1,0 +1,1 @@
+Compatibility is evaluated before optimization. Train overlap is a hard rejection, not a penalty. Compatible tasks must share a corridor, overlap spatially, fit the block type and maximum duration, and have required resources available.

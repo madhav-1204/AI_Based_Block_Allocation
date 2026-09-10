@@ -1,0 +1,1 @@
+The current risk model is a deterministic fallback using health, criticality, failure count, operational importance, and task risk. A trained classifier can replace it behind the same predict contract later.

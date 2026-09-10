@@ -1,0 +1,1 @@
+PlanningService owns the workflow from normalized source records to OptimizedPlan. EmergencyReplanner excludes completed task IDs, adds a CRITICAL emergency task, reruns the same optimizer, and returns old/new plans plus explainable changes.
