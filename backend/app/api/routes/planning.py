@@ -28,6 +28,7 @@ def _records(db: Session) -> tuple[list[dict], list[dict], list[dict], list[dict
 @router.post("/optimize")
 def optimize(request: OptimizeRequest, db: Session = Depends(get_db)) -> dict:
     tasks, trains, blocks, forecasts, resources = _records(db)
+    tasks.extend(request.tasks)
     plan = PlanningService().generate_plan(tasks, trains, blocks, forecasts, resources, PlanningRequest(request.planning_horizon, request.objective))
     return PlanningService.plan_summary(plan)
 

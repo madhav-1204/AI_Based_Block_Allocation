@@ -23,9 +23,22 @@ export type ApiAnalytics = {
   improvement: { downtime_reduced_percent: number; blocks_reduced_percent: number; availability_improvement_percent: number }
 }
 
+export type PlanningTaskInput = {
+  task_id: string
+  department: 'ENGINEERING' | 'TRACTION' | 'SNT'
+  corridor_id: string
+  estimated_duration_minutes: number
+  required_block_type: 'TRAFFIC_BLOCK' | 'POWER_BLOCK' | 'LINE_BLOCK' | 'COMBINED_BLOCK'
+  priority_score: number
+  due_at: string
+  status: 'PENDING' | 'OVERDUE'
+  location_start: number
+  location_end: number
+}
+
 export const api = {
   health: () => request<{ status: string; service: string }>('/health'),
   tasks: () => request<{ items: ApiTask[]; limit: number; offset: number }>('/tasks?limit=4'),
   analytics: () => request<ApiAnalytics>('/analytics'),
-  optimize: (planning_horizon: 'DAILY' | 'WEEKLY' | 'MONTHLY') => request<{ status: string; planning_horizon: string; blocks: Array<{ block_id: string; corridor_id: string; date: string; start_time: string; end_time: string; departments: string[]; shared_block: boolean; shared_block_savings_minutes: number; reason: string[] }> }>('/optimize', { method: 'POST', body: JSON.stringify({ planning_horizon }) }),
+  optimize: (planning_horizon: 'DAILY' | 'WEEKLY' | 'MONTHLY', tasks: PlanningTaskInput[] = []) => request<{ status: string; planning_horizon: string; blocks: Array<{ block_id: string; corridor_id: string; date: string; start_time: string; end_time: string; departments: string[]; shared_block: boolean; shared_block_savings_minutes: number; reason: string[]; tasks?: Array<{ task_id: string; department: string }> }> }>('/optimize', { method: 'POST', body: JSON.stringify({ planning_horizon, tasks }) }),
 }

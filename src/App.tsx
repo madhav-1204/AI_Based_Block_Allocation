@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-import { api, type ApiAnalytics, type ApiTask } from './api/client'
+import { api, type ApiAnalytics, type ApiTask, type PlanningTaskInput } from './api/client'
 
 type Activity = { id: string; title: string; department: string; asset: string; due: string; duration: string; priority: 'Critical' | 'High' | 'Medium'; score: number }
 type Role = 'Control' | 'Engineering' | 'Traction' | 'S&T'
@@ -33,6 +33,7 @@ const planBlocks = [
 ]
 
 function App() {
+  const [showPortal, setShowPortal] = useState(true)
   const [activeRole, setActiveRole] = useState<Role>('Control')
   const [activeView, setActiveView] = useState('Command center')
   const [apiLive, setApiLive] = useState(false)
@@ -42,11 +43,14 @@ function App() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [generated, setGenerated] = useState(false)
   const [plannerHorizon, setPlannerHorizon] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY'>('WEEKLY')
-  const [plannerResult, setPlannerResult] = useState<{ status: string; blocks: Array<{ block_id: string; corridor_id: string; date: string; start_time: string; end_time: string; departments: string[]; shared_block: boolean; shared_block_savings_minutes: number; reason: string[] }> } | null>(null)
+  const [plannerResult, setPlannerResult] = useState<{ status: string; blocks: Array<{ block_id: string; corridor_id: string; date: string; start_time: string; end_time: string; departments: string[]; shared_block: boolean; shared_block_savings_minutes: number; reason: string[]; tasks?: Array<{ task_id: string; department: string }> }> } | null>(null)
   const [plannerError, setPlannerError] = useState('')
-  const generatePlan = () => { setIsGenerating(true); setPlannerError(''); api.optimize(plannerHorizon).then((result) => { setPlannerResult(result); setGenerated(true) }).catch(() => setPlannerError('Planner API unavailable. Start the backend to generate a live recommendation.')).finally(() => setIsGenerating(false)) }
+  const [planningTasks, setPlanningTasks] = useState<PlanningTaskInput[]>([{ task_id: 'DEMO-001', department: 'ENGINEERING', corridor_id: 'C102', estimated_duration_minutes: 120, required_block_type: 'TRAFFIC_BLOCK', priority_score: 92, due_at: '2024-10-14', status: 'PENDING', location_start: 112, location_end: 114 }])
+  const updatePlanningTask = (field: keyof PlanningTaskInput, value: string) => setPlanningTasks((tasks) => tasks.map((task, index) => index === 0 ? { ...task, [field]: ['estimated_duration_minutes', 'priority_score', 'location_start', 'location_end'].includes(field) ? Number(value) : value } as PlanningTaskInput : task))
+  const generatePlan = () => { const input = window.prompt('Enter task data as: task reference, corridor, duration minutes, priority score', `${planningTasks[0].task_id}, ${planningTasks[0].corridor_id}, ${planningTasks[0].estimated_duration_minutes}, ${planningTasks[0].priority_score}`); if (input === null) return; const [taskId, corridorId, duration, priority] = input.split(',').map((value) => value.trim()); const validInput = Boolean(taskId && corridorId && Number(duration) > 0 && Number(priority) > 0); if (validInput) { updatePlanningTask('task_id', taskId); updatePlanningTask('corridor_id', corridorId); updatePlanningTask('estimated_duration_minutes', duration); updatePlanningTask('priority_score', priority) } setIsGenerating(true); setPlannerError(''); const submittedTasks = validInput ? [{ ...planningTasks[0], task_id: taskId, corridor_id: corridorId, estimated_duration_minutes: Number(duration), priority_score: Number(priority) }] : planningTasks; api.optimize(plannerHorizon, submittedTasks).then((result) => { setPlannerResult(result); setGenerated(true) }).catch(() => setPlannerError('Planner API unavailable. Start the backend to generate a live recommendation.')).finally(() => setIsGenerating(false)) }
   const currentRole = roles.find((role) => role.name === activeRole) ?? roles[0]
   const queue = apiTasks.length && activeRole === 'Control' ? apiTasks.map((task) => ({ id: task.task_code, title: `${task.department} maintenance task`, department: task.department, asset: task.corridor_id, due: task.status === 'OVERDUE' ? 'Overdue' : `Due ${task.due_at.slice(0, 10)}`, duration: `${task.estimated_duration_minutes}m`, priority: task.priority_level === 'CRITICAL' ? 'Critical' : task.priority_level === 'HIGH' ? 'High' : 'Medium', score: Math.round(task.priority_score ?? 0) } satisfies Activity)) : roleQueues[activeRole]
+  const enterPortal = (role: Role) => { setActiveRole(role); setActiveView('Command center'); setGenerated(false); setShowPortal(false) }
 
   useEffect(() => {
     Promise.all([api.health(), api.tasks(), api.analytics()]).then(([health, taskResponse, analyticsResponse]) => {
@@ -55,6 +59,15 @@ function App() {
       setAnalytics(analyticsResponse)
     }).catch(() => setApiLive(false))
   }, [])
+
+  if (showPortal) return <main className="portal-landing">
+    <div className="portal-glow portal-glow-one" />
+    <div className="portal-glow portal-glow-two" />
+    <header className="portal-header"><div className="brand portal-brand"><span className="brand-mark">/</span><span>RAIL<span className="brand-accent">SYNC</span></span></div><div className="portal-status"><span className="status-dot" /> Decision-support network <span>•</span> Synthetic data</div></header>
+    <section className="portal-hero"><div className="portal-copy"><div className="portal-kicker">NORTH CENTRAL RAILWAY / PRAYAGRAJ DIVISION</div><h1>Coordinate every block.<br /><em>Protect every movement.</em></h1><p>RailSync brings maintenance requests, corridor health, and train-impact insights into one calm operating picture.</p><div className="portal-rule" /></div><div className="portal-signal"><span className="signal-label">NETWORK PULSE</span><div className="signal-line"><i /><i /><i /><i /><i /><i /><i /></div><strong>98.2%</strong><small>trains protected</small></div></section>
+    <section className="portal-access"><div className="portal-section-heading"><div><div className="portal-kicker">CHOOSE YOUR WORKSPACE</div><h2>Where do you want to go?</h2></div><p>Open the tools built for your operating role.</p></div><div className="portal-grid">{roles.map((role, index) => <button className={`portal-card ${role.color}`} key={role.name} onClick={() => enterPortal(role.name)}><span className="portal-number">0{index + 1}</span><span className="portal-avatar role-avatar">{role.short}</span><span className="portal-card-copy"><strong>{role.name} portal</strong><small>{role.detail}</small></span><span className="portal-arrow">↗</span></button>)}</div></section>
+    <footer className="portal-footer"><span>RAILSYNC PLANNING ENGINE v0.9</span><span>Decision-support prototype only · Authorization remains with railway personnel</span></footer>
+  </main>
 
   return <main className="app-shell">
     <aside className="sidebar">
@@ -65,7 +78,7 @@ function App() {
       <nav className="nav-list" aria-label="Primary navigation">
         <button className={`nav-item ${activeView === 'Command center' ? 'active' : ''}`} onClick={() => setActiveView('Command center')}><span className="nav-icon">▦</span> Command center</button><button className={`nav-item ${activeView === 'Block planner' ? 'active' : ''}`} onClick={() => setActiveView('Block planner')}><span className="nav-icon">◫</span> Block planner <span className="nav-badge">4</span></button><button className={`nav-item ${activeView === 'Maintenance queue' ? 'active' : ''}`} onClick={() => setActiveView('Maintenance queue')}><span className="nav-icon">⌁</span> Maintenance queue</button><button className={`nav-item ${activeView === 'Corridor map' ? 'active' : ''}`} onClick={() => setActiveView('Corridor map')}><span className="nav-icon">◎</span> Corridor map</button><button className={`nav-item ${activeView === 'Reports' ? 'active' : ''}`} onClick={() => setActiveView('Reports')}><span className="nav-icon">↗</span> Reports</button>
       </nav>
-      <div className="sidebar-bottom"><div className="user-avatar">AS</div><div><strong>Arjun Sharma</strong><small>Divisional control</small></div><span className="more">•••</span></div>
+      <div className="sidebar-bottom"><div className="user-avatar">AS</div><div><strong>Arjun Sharma</strong><small>Divisional control</small></div><button className="more" aria-label="Return to portal" onClick={() => setShowPortal(true)}>↗</button></div>
     </aside>
 
     <section className="content">

@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 class OptimizeRequest(BaseModel):
     planning_horizon: str = Field(default="WEEKLY", pattern="^(DAILY|WEEKLY|MONTHLY)$")
     objective: str = "MAXIMIZE_ASSET_AVAILABILITY"
+    tasks: list[dict] = Field(default_factory=list, max_length=20)
 
 
 class EmergencyRequest(BaseModel):
